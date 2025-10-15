@@ -182,7 +182,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         // --- CONFIGURACIÓN ---
-        const REDIRECTION_URL = "https://natural-house.odoo.com/shop/checkout?try_skip_step=true";
+        const REDIRECTION_URL = "https://natural-house.odoo.com/shop/cart";
         const CART_URL = "https://natural-house.odoo.com/shop/cart";
         const ADMIN_MODE_KEY = "ADMINNH"; 
         
@@ -199,123 +199,121 @@
 
         // --- LÓGICA DE INTERFAZ Y REDIRECCIÓN ---
         
-        function iniciarRedireccion(finalUrl) {
+        // Función simplificada para mostrar el mensaje de éxito persistente
+        function mostrarMensajeExitoPersistente(finalUrl) {
             const redirectArea = getEl('redirection-area');
+            
+            // 1. Mostrar el mensaje y el botón
             redirectArea.classList.remove('d-none');
             
-            let count = 5; 
-            
             redirectArea.innerHTML = `
-                <p class="h6" style="color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">Redirigiendo en <span id="countdown">${count}</span> segundos...</p>
-                <a href="${finalUrl}" class="btn btn-primary text-decoration-none">
+                <div class="alert alert-success p-3 shadow-sm my-3">
+                    <p class="mb-0">✅ ¡Datos Guardados! Ya puedes volver al sitio web para finalizar la compra.</p>
+                </div>
+                <a href="${finalUrl}" class="btn btn-primary btn-sm text-decoration-none mt-2 mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-2" viewBox="0 0 16 16">
-                      <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
+                        <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
                     </svg>
-                    Volver al sitio
+                    Volver al Checkout
                 </a>
             `;
+            // Aseguramos que el mensaje de error del fetch esté oculto
+            getEl('errorExpreso').classList.add('d-none'); 
+        }
+        
+        // Función placeholder, ya no se usa la redirección automática
+        function iniciarRedireccion() { return; }
 
-            const countdownEl = getEl('countdown');
 
-            const interval = setInterval(() => {
-                count--;
-                if (countdownEl) countdownEl.textContent = count;
+        function guardarExpreso() {
+            const pref = (getEl('expreso_preferencia') || {}).value || '';
+            const email = (getEl('expreso_email') || {}).value || '';
+            const tel = (getEl('expreso_telefono') || {}).value || '';
+            const errorDiv = getEl('errorExpreso');
+            const btnGuardar = getEl("btnGuardarExpreso");
+            
+            if (errorDiv) { errorDiv.classList.add('d-none'); errorDiv.textContent = ''; }
+            if (!btnGuardar) return;
 
-                if (count <= 0) {
-                    clearInterval(interval);
-                    window.location.href = finalUrl;
+            // LÓGICA DE ACCESO ADMIN
+            if (pref.trim().toUpperCase() === ADMIN_MODE_KEY) { 
+                window.open(ADMIN_REPORT_URL, '_blank'); 
+                return; 
+            }
+            
+            // 1. Validación (NORMAL)
+            if (!pref.trim() || !email.trim() || !tel.trim()) {
+                if (errorDiv) {
+                    errorDiv.classList.remove('d-none');
+                    errorDiv.textContent = 'Debe completar el Expreso, el Email y el Teléfono.';
                 }
-            }, 1000);
-        }
+                return;
+            }
 
-function guardarExpreso() {
-    const pref = (getEl('expreso_preferencia') || {}).value || '';
-    const email = (getEl('expreso_email') || {}).value || '';
-    const tel = (getEl('expreso_telefono') || {}).value || '';
-    const errorDiv = getEl('errorExpreso');
-    const btnGuardar = getEl("btnGuardarExpreso");
-    
-    if (errorDiv) { errorDiv.classList.add('d-none'); errorDiv.textContent = ''; }
-    if (!btnGuardar) return;
+            // Deshabilitar y mostrar animación de carga
+            btnGuardar.disabled = true;
+            btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...`;
+            getEl('redirection-area').classList.add('d-none'); // Oculta el mensaje anterior
 
-    // LÓGICA DE ACCESO ADMIN (se mantiene igual)
-    if (pref.trim().toUpperCase() === ADMIN_MODE_KEY) { 
-        window.open(ADMIN_REPORT_URL, '_blank'); 
-        return; 
-    }
-    
-    // 1. Validación (NORMAL)
-    if (!pref.trim() || !email.trim() || !tel.trim()) {
-        if (errorDiv) {
-            errorDiv.classList.remove('d-none');
-            errorDiv.textContent = 'Debe completar el Expreso, el Email y el Teléfono.';
-        }
-        return;
-    }
+            // 2. ENVÍO DE DATOS A GOOGLE SHEETS (API)
+            const datosExpreso = {
+                expreso: pref.trim(),
+                email: email.trim(),
+                telefono: tel.trim(),
+            };
+            
+            fetch(SHEETS_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify(datosExpreso),
+                mode: 'no-cors' 
+            })
+            .then(() => {
+                // 3. Animación de éxito (temporal, antes del mensaje final)
+                btnGuardar.innerHTML = '✓';
+                btnGuardar.classList.add('success-state');
 
-    // Deshabilitar y mostrar animación de carga
-    btnGuardar.disabled = true;
-    btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...`;
+                const successModal = new bootstrap.Modal(getEl('successModal'));
+                successModal.show();
+                
+                setTimeout(() => { successModal.hide(); }, 2000);
+                
+                // 4. Mostrar mensaje final persistente (NO HAY REDIRECCIÓN AUTOMÁTICA)
+                setTimeout(() => {
+                    btnGuardar.classList.remove('success-state');
+                    // Restauramos el botón a su estado normal
+                    btnGuardar.disabled = false;
+                    btnGuardar.innerHTML = 'Guardar y Continuar'; 
+                    
+                    // Mostramos el mensaje de éxito y el botón de volver al checkout
+                    mostrarMensajeExitoPersistente(REDIRECTION_URL);
+                }, 2200); 
 
-    // 2. ENVÍO DE DATOS A GOOGLE SHEETS (API) con no-cors
-    const datosExpreso = {
-        expreso: pref.trim(),
-        email: email.trim(),
-        telefono: tel.trim(),
-    };
-    
-    fetch(SHEETS_API_URL, {
-        method: 'POST',
-        headers: {
-            // Con no-cors, el navegador ignora este header o lo modifica.
-            'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify(datosExpreso),
-        mode: 'no-cors' // <--- CAMBIO CLAVE: Soluciona la mayoría de los errores de fetch en GitHub Pages
-    })
-    .then(() => {
-        // Al usar 'no-cors', no podemos verificar si el servidor respondió correctamente,
-        // por lo que asumimos el éxito si la solicitud de red se completó.
-
-        // 3. Animación de éxito
-        btnGuardar.innerHTML = '✓';
-        btnGuardar.classList.add('success-state');
-
-        const successModal = new bootstrap.Modal(getEl('successModal'));
-        successModal.show();
-        
-        setTimeout(() => { successModal.hide(); }, 2000);
-        
-        // 4. Iniciar redirección
-        setTimeout(() => {
-            btnGuardar.classList.remove('success-state');
-            btnGuardar.innerHTML = 'Guardado';
-            iniciarRedireccion(REDIRECTION_URL);
-        }, 500); 
-
-    })
-    .catch(error => {
-        // Este catch solo se activa por fallos severos de red (cable desconectado, dominio no existe).
-        console.error('Error al guardar los datos:', error);
-        
-        if (errorDiv) {
-            errorDiv.classList.remove('d-none');
-            errorDiv.textContent = 'ERROR: Fallo de red. Detalle: ' + error.message;
+            })
+            .catch(error => {
+                console.error('Error al guardar los datos:', error);
+                
+                if (errorDiv) {
+                    errorDiv.classList.remove('d-none');
+                    errorDiv.textContent = 'ERROR: Fallo de red. Detalle: ' + error.message;
+                }
+                
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = 'Guardar y Continuar';
+            });
         }
         
-        // Restaurar el botón
-        btnGuardar.disabled = false;
-        btnGuardar.innerHTML = 'Guardar y Continuar';
-    });
-}
-        
-        // --- LÓGICA PARA EL BOTÓN 'CERRAR' ---
+        // --- LÓGICA PARA EL BOTÓN 'CERRAR' (Volver al Carrito) ---
         const btnCerrar = getEl('btnCerrar');
 
         if (btnCerrar) {
             btnCerrar.addEventListener('click', () => {
                 window.location.href = CART_URL; 
             });
+            // Opción para renombrar el botón
+            btnCerrar.textContent = 'Volver al Carrito';
         }
 
         // --- INICIALIZACIÓN ---
