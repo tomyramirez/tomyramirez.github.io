@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación de Checkout Localidad con Redirección Directa</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .main-content {
+            max-width: 800px;
+            margin: 40px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #localidad_bloque_contenedor {
+            z-index: 10000; 
+        }
+        #sugerencias {
+            z-index: 10001;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-content">
+        <h1>Simulación de Carrito/Checkout</h1>
+
+        <div id="shop_checkout_placeholder" style="height: 150px; border: 1px dashed #ccc; padding: 15px; margin-bottom: 20px;">
+            Contenido de Odoo (Checkout/Direcciones) iría aquí.
+        </div>
+
+        <div class="container my-4 p-4 border rounded bg-light" id="localidad_bloque_contenedor" style="position: relative;">
+            <h4>📦 ¿Dónde vivís?</h4>
+            <p id="preguntaLocalidad">Escribí tu localidad para conocer los días de entrega:</p>
+
+            <div id="ubicacionDetectada" class="alert alert-secondary d-none" style="font-size: 14px;"></div>
+
+            <div id="bloqueSelector">
+                <input type="text" id="localidadInput" class="form-control w-100 mb-2" placeholder="Ej: Lanús" autocomplete="off"/>
+                <ul id="sugerencias" class="list-group mb-3" style="max-height: 150px; overflow-y: auto; position: absolute; z-index: 10001; width: 100%;"></ul>
+            </div>
+
+            <div id="resultadoEntrega" class="alert alert-info d-none"></div>
+            <div id="opcionesEntrega" class="mt-3"></div>
+            <div id="mensajeWarning" class="alert alert-warning d-none" style="color:#cc3300; font-weight:bold;"></div>
+            
+            <div id="mensajeCostoExpresoGlobal" class="alert alert-danger d-none mt-2" style="font-weight: bold; font-size: 1.1em;">
+                ATENCIÓN: El costo de envío/despacho a Expreso <b>corre por cuenta del cliente.</b>
+            </div>
+            
+            <input type="hidden" id="commitment_date"/>
+            <input type="hidden" id="expreso_info_json"/>
+        </div>
+
+        <div class="modal fade" id="modalExpreso" tabindex="-1" role="dialog" aria-labelledby="modalExpresoLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalExpresoLabel">Información del Expreso/Despacho</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="errorExpreso" class="alert alert-danger d-none"></div>
+                        
+                        <div class="alert alert-danger mb-4" style="font-weight: bold; font-size: 1em;">
+                            ATENCIÓN: El costo de envío/despacho a Expreso <b>corre por cuenta del cliente.</b>
+                        </div>
+
+                        <form id="formExpreso">
+                            
+                            <div class="form-group mb-3">
+                                <label for="expreso_preferencia" class="form-label">Expreso de preferencia (*)</label>
+                                <input type="text" class="form-control" id="expreso_preferencia" required="required" placeholder="Ej: Vía Cargo, Correo Argentino"/>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="expreso_telefono" class="form-label">Teléfono de contacto (*)</label>
+                                <input type="tel" class="form-control" id="expreso_telefono" required="required" placeholder="Ej: 11 5555 5555"/>
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label class="form-label">Seleccione modalidad de entrega (*)</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="expreso_retiro_envio" id="retiro_sucursal" value="Retiro por sucursal de despacho" required="required"/>
+                                    <label class="form-check-label" for="retiro_sucursal">Retiro por sucursal de despacho</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="expreso_retiro_envio" id="envio_domicilio" value="Envío a domicilio"/>
+                                    <label class="form-check-label" for="envio_domicilio">Envío a domicilio</label>
+                                </div>
+                            </div>
+                            
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnCancelarExpreso">Cerrar</button>
+                        <button type="button" class="btn btn-primary" id="btnGuardarExpreso">Guardar Información</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            // --- CONFIGURACIÓN DE REDIRECCIÓN ---
+            const REDIRECTION_URL = "http://127.0.0.1:5500/form.html"; // <-- URL DE DESTINO FINAL
+            // ------------------------------------
+
+            const LOCALIDADES_JSON = "expreso_data_localstorage"; 
+            const localidades = [
+                { nombre: "Lanús", dias: ["Mon","Thu"] }, { nombre: "Temperley", dias: ["Mon","Thu"] }, { nombre: "Lomas de Zamora", dias: ["Mon"] },
+                { nombre: "Jose Marmol", dias: ["Mon"] }, { nombre: "Lavallol", dias: ["Mon"] }, { nombre: "Florencio Varela", dias: ["Mon","Thu"] },
+                { nombre: "Brandsen", dias: ["Mon"] }, { nombre: "San Vicente", dias: ["Mon"] }, { nombre: "Adrogue", dias: ["Mon","Thu"] },
+                { nombre: "Rafael Calzada", dias: ["Mon"] }, { nombre: "Glew", dias: ["Mon"] }, { nombre: "Monte Grande", dias: ["Mon","Thu"] },
+                { nombre: "Canning", dias: ["Mon"] }, { nombre: "Ezeiza", dias: ["Mon"] }, { nombre: "Remedios de Escalada", dias: ["Mon"] },
+                { nombre: "Banfield", dias: ["Mon"] }, { nombre: "Burzaco", dias: ["Mon","Thu"] }, { nombre: "Gerli", dias: ["Mon"] },
+                { nombre: "CABA", dias: ["Tue"] }, { nombre: "La Plata", dias: ["Tue","Thu","Fri"] }, { nombre: "Berazategui", dias: ["Tue","Fri"] },
+                { nombre: "Hudson", dias: ["Tue"] }, { nombre: "Barrio Marítimo", dias: ["Tue"] }, { nombre: "Juan María Gutiérrez", dias: ["Tue","Thu"] },
+                { nombre: "Flores", dias: ["Wed"] }, { nombre: "Floresta", dias: ["Wed"] }, { nombre: "Caballito", dias: ["Wed"] },
+                { nombre: "Villa Crespo", dias: ["Wed"] }, { nombre: "Olivos", dias: ["Wed"] }, { nombre: "Vicente Lopez", dias: ["Wed"] },
+                { nombre: "Nuñez", dias: ["Wed"] }, { nombre: "Belgrano", dias: ["Wed"] }, { nombre: "Palermo", dias: ["Wed"] },
+                { nombre: "Puerto Madero", dias: ["Wed"] }, { nombre: "Microcentro", dias: ["Wed","Fri"] }, { nombre: "San Telmo", dias: ["Wed"] },
+                { nombre: "Barracas", dias: ["Wed"] }, { nombre: "Once", dias: ["Wed","Fri"] }, { nombre: "Almagro", dias: ["Wed"] },
+                { nombre: "Balvanera", dias: ["Wed"] }, { nombre: "Recoleta", dias: ["Wed"] }, { nombre: "Villa Elisa", dias: ["Thu"] },
+                { nombre: "City Bell", dias: ["Thu"] }, { nombre: "Ensenada", dias: ["Thu"] }, { nombre: "Berisso", dias: ["Thu"] },
+                { nombre: "Expreso/Interior", dias: ["Thu"] }, { nombre: "Avellaneda", dias: ["Fri"] }, { nombre: "Wilde", dias: ["Fri"] },
+                { nombre: "Bernal", dias: ["Fri"] }, { nombre: "Quilmes", dias: ["Fri"] }, { nombre: "Hornos", dias: ["Fri"] },
+                { nombre: "Etcheverri", dias: ["Fri"] }, { nombre: "Ezpeleta", dias: ["Fri"] }, { nombre: "La Boca", dias: ["Fri"] },
+                { nombre: "Parque Patricios", dias: ["Fri"] }, { nombre: "Villa Urquiza", dias: ["Fri"] }, { nombre: "Colegiales", dias: ["Fri"] }
+            ];
+            const traduccionDias = { Mon: "Lunes", Tue: "Martes", Wed: "Miércoles", Thu: "Jueves", Fri: "Viernes" };
+            const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+            let indiceSeleccionado = -1;
+
+            const getEl = id => document.getElementById(id);
+            const bootstrap = window.bootstrap; 
+
+            // --- FUNCIÓN DE REDIRECCIÓN (Simplificada) ---
+            function renderBotonExpreso(mostrar) {
+                let btn = getEl("btnAbrirExpresoModal");
+                const opcionesEntrega = getEl("opcionesEntrega");
+
+                if (mostrar) {
+                    if (!btn) {
+                        btn = document.createElement('button');
+                        btn.id = "btnAbrirExpresoModal";
+                        btn.type = "button";
+                        btn.className = "btn btn-success mt-3"; // Cambiamos a éxito para el botón final
+                        btn.textContent = "Continuar para Información de Expreso";
+                        
+                        // Nuevo Listener: Redirección directa
+                        btn.addEventListener('click', () => {
+                            window.location.href = REDIRECTION_URL;
+                        });
+
+                        if (opcionesEntrega) {
+                             opcionesEntrega.appendChild(btn);
+                        }
+                    } else {
+                        btn.style.display = 'block';
+                    }
+                } else if (btn) {
+                    btn.style.display = 'none';
+                }
+            }
+
+            // --- LÓGICA DE GUARDADO (Ahora solo guarda datos del modal, no redirige) ---
+            function guardarExpreso() {
+                // Esta función se mantiene para el botón dentro del modal, por si lo necesitas.
+                // Si solo quieres redirigir con el botón de "Completar Información de Expreso",
+                // esta función ya no es necesaria, pero se mantiene para completar el modal.
+                const pref = (getEl('expreso_preferencia') || {}).value || '';
+                const tel = (getEl('expreso_telefono') || {}).value || '';
+                const retiro = (document.querySelector('input[name="expreso_retiro_envio"]:checked') || {}).value || '';
+                const errorDiv = getEl('errorExpreso');
+                const btnGuardar = getEl("btnGuardarExpreso");
+                
+                if (errorDiv) { errorDiv.classList.add('d-none'); errorDiv.textContent = ''; }
+                if (!btnGuardar) return;
+
+                // 1. Validación (se mantiene)
+                if (!pref.trim() || !tel.trim() || !retiro) {
+                    if (errorDiv) {
+                        errorDiv.classList.remove('d-none');
+                        errorDiv.textContent = 'Debe completar el Expreso, el Teléfono y seleccionar una opción de entrega.';
+                    }
+                    btnGuardar.innerHTML = "Guardar Información";
+                    btnGuardar.disabled = false;
+                    return;
+                }
+
+                // 2. Almacenamiento Local (se mantiene)
+                const datosExpreso = {
+                    expreso_preferencia: pref.trim(),
+                    expreso_telefono: tel.trim(),
+                    modalidad_entrega: retiro,
+                    fecha_seleccionada: getEl("commitment_date").value,
+                    timestamp_guardado: new Date().toISOString()
+                };
+
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem(LOCALIDADES_JSON, JSON.stringify(datosExpreso));
+                }
+                
+                // 3. Simulación de éxito y cierre de modal
+                const modalExpreso = getEl("modalExpreso");
+                if (bootstrap && bootstrap.Modal && modalExpreso) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalExpreso);
+                    modal.hide();
+                }
+
+                alert('Información del expreso guardada localmente. Presione el botón "Continuar" para redirigir.');
+                
+                btnGuardar.innerHTML = "Guardar Información";
+                btnGuardar.disabled = false;
+                getEl('formExpreso') && getEl('formExpreso').reset(); 
+            }
+
+            // --- LÓGICA DE LOCALIDAD Y FECHAS (se mantiene igual) ---
+
+            function filtrarLocalidades() {
+                const input = getEl("localidadInput");
+                const lista = getEl("sugerencias");
+                const mensajeCostoExpreso = getEl("mensajeCostoExpresoGlobal"); 
+                const resultado = getEl("resultadoEntrega");
+                const opciones = getEl("opcionesEntrega");
+                const warning = getEl("mensajeWarning");
+
+                if (!input || !lista) return;
+
+                const filtro = input.value.trim().toLowerCase();
+                lista.innerHTML = "";
+                indiceSeleccionado = -1;
+                
+                if (resultado) resultado.classList.add("d-none");
+                if (opciones) opciones.innerHTML = "";
+                if (mensajeCostoExpreso) mensajeCostoExpreso.classList.add("d-none");
+                if (warning) warning.classList.add("d-none");
+
+                const coincidencias = localidades.filter(l => l.nombre.toLowerCase().includes(filtro));
+                
+                if (filtro !== "" && coincidencias.length === 0) {
+                    renderExpresoDates(input.value.trim()); 
+                    return; 
+                }
+
+                if (filtro !== "" && coincidencias.length > 0) {
+                    coincidencias.forEach((l, i) => {
+                        const item = document.createElement("li");
+                        item.classList.add("list-group-item", "list-group-item-action");
+                        item.style.cursor = "pointer";
+                        item.textContent = l.nombre;
+                        item.dataset.index = i;
+                        item.onclick = () => seleccionarLocalidad(l);
+                        lista.appendChild(item);
+                    });
+                }
+            }
+
+            function renderExpresoDates(localidadIngresada) {
+                const resultado = getEl("resultadoEntrega");
+                const opcionesEntrega = getEl("opcionesEntrega");
+                const mensajeCostoExpreso = getEl("mensajeCostoExpresoGlobal");
+                const mensajeWarning = getEl("mensajeWarning");
+                
+                if (!resultado || !opcionesEntrega) return;
+
+                const ahora = new Date();
+                const horaLimite = new Date();
+                horaLimite.setHours(14, 0, 0, 0);
+                const diasLeadTime = ahora >= horaLimite ? 2 : 1; 
+                const minDate = new Date();
+                minDate.setDate(minDate.getDate() + diasLeadTime);
+
+                const expresoObj = localidades.find(l => l.nombre === "Expreso/Interior");
+                const diasExpreso = expresoObj ? expresoObj.dias : ['Thu']; 
+                
+                opcionesEntrega.innerHTML = "";
+                if (mensajeWarning) mensajeWarning.classList.add("d-none");
+
+                if (mensajeCostoExpreso) mensajeCostoExpreso.classList.remove("d-none");
+                resultado.classList.remove("d-none");
+                resultado.innerHTML = `🚚 <strong>${localidadIngresada}</strong> (No cubierto): Días de despacho disponibles:`;
+
+                const fechasEntrega = [];
+                for (let i = 0; i < 21; i++) {
+                    const fecha = new Date();
+                    fecha.setDate(ahora.getDate() + i);
+
+                    if (fecha < minDate) continue;
+                    if (fecha.getDay() === 0) continue;
+
+                    const diaSemana = diasSemana[fecha.getDay()];
+                    const abreviatura = Object.keys(traduccionDias).find(k => traduccionDias[k] === diaSemana);
+
+                    if (diasExpreso.includes(abreviatura)) {
+                        fechasEntrega.push({ fecha, diaSemana });
+                    }
+                }
+
+                if (fechasEntrega.length > 0) {
+                    const titulo = document.createElement("p");
+                    titulo.textContent = "📅 Seleccioná tu fecha de despacho disponible:";
+                    opcionesEntrega.appendChild(titulo);
+                    
+                    fechasEntrega.forEach(diaEntrega => {
+                        const opcion = document.createElement("div");
+                        opcion.classList.add("form-check");
+                        const inputRadio = document.createElement("input");
+                        inputRadio.type = "radio";
+                        inputRadio.name = "fechaEntrega";
+                        inputRadio.value = diaEntrega.fecha.toISOString();
+                        inputRadio.classList.add("form-check-input");
+                        inputRadio.addEventListener("change", () => {
+                            getEl("commitment_date") && (getEl("commitment_date").value = inputRadio.value);
+                            renderBotonExpreso(true);
+                        });
+                        const label = document.createElement("label");
+                        label.classList.add("form-check-label");
+                        label.textContent = `${diaEntrega.diaSemana} (${diaEntrega.fecha.toLocaleDateString("es-AR")})`;
+                        opcion.appendChild(inputRadio);
+                        opcion.appendChild(label);
+                        opcionesEntrega.appendChild(opcion);
+                    });
+                    
+                    if (ahora >= horaLimite && mensajeWarning) {
+                        mensajeWarning.textContent = "⚠ Atención: Pedidos realizados después de las 14:00 hrs. se procesan 2 días hábiles después. La primera fecha disponible ya incluye este tiempo.";
+                        mensajeWarning.classList.remove("d-none");
+                    }
+                } else {
+                     if (mensajeWarning) {
+                        mensajeWarning.textContent = "⚠️ No hay fechas de despacho disponibles próximamente.";
+                        mensajeWarning.classList.remove("d-none");
+                     }
+                }
+            }
+
+            function seleccionarLocalidad(localidad) {
+                const input = getEl("localidadInput");
+                const resultado = getEl("resultadoEntrega");
+                const lista = getEl("sugerencias");
+                const opcionesEntrega = getEl("opcionesEntrega");
+                const mensajeWarning = getEl("mensajeWarning");
+                const mensajeCostoExpreso = getEl("mensajeCostoExpresoGlobal");
+
+                if (!input || !resultado || !lista || !opcionesEntrega) return;
+
+                input.removeEventListener('input', filtrarLocalidades);
+
+                if (mensajeCostoExpreso) mensajeCostoExpreso.classList.add("d-none");
+                renderBotonExpreso(false);
+
+                input.value = localidad.nombre;
+                lista.innerHTML = "";
+                
+                input.addEventListener('input', filtrarLocalidades);
+
+                const diasTraducidos = localidad.dias.map(d => traduccionDias[d]).join(", ");
+                resultado.innerHTML = `🚚 Entregamos en <strong>${localidad.nombre}</strong> los días <strong>${diasTraducidos}</strong>.`;
+                resultado.classList.remove("d-none");
+                opcionesEntrega.innerHTML = "";
+                if (mensajeWarning) mensajeWarning.classList.add("d-none");
+                
+                const ahora = new Date();
+                const horaLimite = new Date();
+                horaLimite.setHours(14, 0, 0, 0);
+                
+                const diasLeadTime = ahora >= horaLimite ? 2 : 1; 
+                const minDate = new Date();
+                minDate.setDate(minDate.getDate() + diasLeadTime);
+
+                const fechasEntrega = [];
+                for (let i = 0; i < 21; i++) {
+                    const fecha = new Date();
+                    fecha.setDate(ahora.getDate() + i);
+
+                    if (fecha < minDate) continue;
+                    if (fecha.getDay() === 0) continue;
+
+                    const diaSemana = diasSemana[fecha.getDay()];
+                    const abreviatura = Object.keys(traduccionDias).find(k => traduccionDias[k] === diaSemana);
+
+                    if (localidad.dias.includes(abreviatura)) {
+                        fechasEntrega.push({ fecha, diaSemana });
+                    }
+                }
+
+                if (fechasEntrega.length > 0) {
+                    const titulo = document.createElement("p");
+                    titulo.textContent = "📅 Seleccioná tu fecha de entrega:";
+                    opcionesEntrega.appendChild(titulo);
+                    fechasEntrega.forEach(diaEntrega => {
+                        const opcion = document.createElement("div");
+                        opcion.classList.add("form-check");
+                        const inputRadio = document.createElement("input");
+                        inputRadio.type = "radio";
+                        inputRadio.name = "fechaEntrega";
+                        inputRadio.value = diaEntrega.fecha.toISOString();
+                        inputRadio.classList.add("form-check-input");
+                        inputRadio.addEventListener("change", () => {
+                            getEl("commitment_date") && (getEl("commitment_date").value = inputRadio.value);
+                        });
+                        const label = document.createElement("label");
+                        label.classList.add("form-check-label");
+                        label.textContent = `${diaEntrega.diaSemana} (${diaEntrega.fecha.toLocaleDateString("es-AR")})`;
+                        opcion.appendChild(inputRadio);
+                        opcion.appendChild(label);
+                        opcionesEntrega.appendChild(opcion);
+                    });
+                    
+                    if (ahora >= horaLimite && mensajeWarning) {
+                        mensajeWarning.textContent = "⚠ Atención: Pedidos realizados después de las 14:00 hrs. se procesan 2 días hábiles después.";
+                        mensajeWarning.classList.remove("d-none");
+                    }
+                } else {
+                    if (mensajeWarning) {
+                        mensajeWarning.textContent = "⚠️ No hay fechas de entrega disponibles para esta localidad en las próximas semanas.";
+                        mensajeWarning.classList.remove("d-none");
+                    }
+                }
+            }
+            
+            function navegarLista(event) {
+                const lista = getEl("sugerencias");
+                const items = lista.getElementsByTagName("li");
+                if (items.length === 0) return;
+                if (event.key === "ArrowDown") {
+                    indiceSeleccionado = (indiceSeleccionado + 1) % items.length;
+                } else if (event.key === "ArrowUp") {
+                    indiceSeleccionado = (indiceSeleccionado - 1 + items.length) % items.length;
+                } else if (event.key === "Enter") {
+                    event.preventDefault();
+                    if (indiceSeleccionado >= 0) {
+                        items[indiceSeleccionado].click();
+                        indiceSeleccionado = -1;
+                    }
+                    return;
+                }
+                for (let i = 0; i < items.length; i++) {
+                    items[i].classList.remove("active");
+                }
+                if (indiceSeleccionado >= 0) {
+                    items[indiceSeleccionado].classList.add("active");
+                    items[indiceSeleccionado].scrollIntoView({ block: "nearest" });
+                }
+            }
+
+            // --- INICIALIZACIÓN ---
+            window.addEventListener("DOMContentLoaded", () => {
+                const input = getEl("localidadInput");
+                if (input) {
+                    input.addEventListener('input', filtrarLocalidades);
+                    input.addEventListener('keydown', navegarLista);
+                    input.addEventListener('focus', filtrarLocalidades); 
+                }
+                
+                filtrarLocalidades();
+                
+                // Conexión del botón "Guardar Información" dentro del modal (se mantiene por si acaso)
+                getEl("btnGuardarExpreso") && getEl("btnGuardarExpreso").addEventListener('click', guardarExpreso);
+            });
+        })();
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+</body>
+</html>
