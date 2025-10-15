@@ -182,7 +182,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         // --- CONFIGURACIÓN ---
-        const REDIRECTION_URL = "https://natural-house.odoo.com/shop/cart";
+        const REDIRECTION_URL = "https://natural-house.odoo.com/shop/checkout?try_skip_step=true"; // Usamos checkout para volver
         const CART_URL = "https://natural-house.odoo.com/shop/cart";
         const ADMIN_MODE_KEY = "ADMINNH"; 
         
@@ -191,19 +191,46 @@
         const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw4Cu4xxhWr6t6AJeCoyciQUoEv6DBzDNZ813vXjJFetomEgRgBBGc_zALkoT9K2Swb/exec'; 
         // **********************************************************************************
         
-        const ADMIN_REPORT_URL = 'https://docs.google.com/spreadsheets/d/1oCF0dB6jRrzPtF1A4KNMEa7q4UOXdLOVeh9Hv3eOfjY/edit?gid=0#gid=0'; // REEMPLAZAR CON LA URL DE TU HOJA
+        const ADMIN_REPORT_URL = 'https://docs.google.com/spreadsheets/d/1oCF0dB6jRrzPtF1A4KNMEa7q4UOXdLOVeh9Hv3eOfjY/edit?gid=0#gid=0'; 
+
+        // Variable global para almacenar la fecha
+        let fechaDespachoCheckout = null; 
 
         // --- HELPERS ---
         const getEl = id => document.getElementById(id);
         const bootstrap = window.bootstrap;
 
+        // --- LÓGICA DE LECTURA DE URL (NUEVA FUNCIÓN) ---
+
+        function getFechaFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            // Lee el parámetro 'fecha_despacho'
+            const fechaRaw = params.get('fecha_despacho'); 
+
+            if (fechaRaw) {
+                // Formatea la fecha para mejor visualización (opcional, pero ayuda)
+                try {
+                    const dateObj = new Date(fechaRaw);
+                    const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+                    // Almacenamos el valor formateado (para el usuario) y el raw (para el envío)
+                    fechaDespachoCheckout = fechaRaw; 
+
+                    // Opcional: Mostrar la fecha al usuario para confirmación (puedes inyectar esto en algún div)
+                    // console.log("Fecha de Checkout detectada:", dateObj.toLocaleDateString('es-AR', options)); 
+                } catch (e) {
+                    console.error("Error al parsear fecha:", e);
+                    fechaDespachoCheckout = 'Fecha Inválida';
+                }
+            } else {
+                fechaDespachoCheckout = 'No seleccionada';
+            }
+        }
+        
         // --- LÓGICA DE INTERFAZ Y REDIRECCIÓN ---
         
-        // Función simplificada para mostrar el mensaje de éxito persistente
         function mostrarMensajeExitoPersistente(finalUrl) {
             const redirectArea = getEl('redirection-area');
             
-            // 1. Mostrar el mensaje y el botón
             redirectArea.classList.remove('d-none');
             
             redirectArea.innerHTML = `
@@ -217,13 +244,8 @@
                     Volver al Checkout
                 </a>
             `;
-            // Aseguramos que el mensaje de error del fetch esté oculto
             getEl('errorExpreso').classList.add('d-none'); 
         }
-        
-        // Función placeholder, ya no se usa la redirección automática
-        function iniciarRedireccion() { return; }
-
 
         function guardarExpreso() {
             const pref = (getEl('expreso_preferencia') || {}).value || '';
@@ -253,13 +275,15 @@
             // Deshabilitar y mostrar animación de carga
             btnGuardar.disabled = true;
             btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...`;
-            getEl('redirection-area').classList.add('d-none'); // Oculta el mensaje anterior
+            getEl('redirection-area').classList.add('d-none'); 
 
             // 2. ENVÍO DE DATOS A GOOGLE SHEETS (API)
             const datosExpreso = {
                 expreso: pref.trim(),
                 email: email.trim(),
                 telefono: tel.trim(),
+                // CLAVE 2: INCLUIR LA FECHA EN EL OBJETO JSON
+                fecha_checkout: fechaDespachoCheckout 
             };
             
             fetch(SHEETS_API_URL, {
@@ -283,11 +307,9 @@
                 // 4. Mostrar mensaje final persistente (NO HAY REDIRECCIÓN AUTOMÁTICA)
                 setTimeout(() => {
                     btnGuardar.classList.remove('success-state');
-                    // Restauramos el botón a su estado normal
                     btnGuardar.disabled = false;
                     btnGuardar.innerHTML = 'Guardar y Continuar'; 
                     
-                    // Mostramos el mensaje de éxito y el botón de volver al checkout
                     mostrarMensajeExitoPersistente(REDIRECTION_URL);
                 }, 2200); 
 
@@ -312,11 +334,11 @@
             btnCerrar.addEventListener('click', () => {
                 window.location.href = CART_URL; 
             });
-            // Opción para renombrar el botón
             btnCerrar.textContent = 'Volver al Carrito';
         }
 
         // --- INICIALIZACIÓN ---
+        getFechaFromURL(); // CLAVE 1: LLAMAR LA FUNCIÓN PARA LEER LA URL
         getEl("btnGuardarExpreso") && getEl("btnGuardarExpreso").addEventListener('click', guardarExpreso);
     });
 </script>
