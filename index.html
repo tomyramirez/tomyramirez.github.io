@@ -187,13 +187,13 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         // --- CONFIGURACIÓN ---
-        const REDIRECTION_URL = "https://natural-house.odoo.com/shop/cart";
-        const CART_URL = "https://natural-house.odoo.com/shop/cart";
+        const REDIRECTION_URL = "[https://natural-house.odoo.com/shop/cart](https://natural-house.odoo.com/shop/cart)";
+        const CART_URL = "[https://natural-house.odoo.com/shop/cart](https://natural-house.odoo.com/shop/cart)";
         const ADMIN_MODE_KEY = "ADMINNH"; 
         
         // **********************************************************************************
         // CLAVE: REEMPLAZA ESTA URL CON LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
-        const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw4Cu4xxhWr6t6AJeCoyciQUoEv6DBzDNZ813vXjJFetomEgRgBBGc_zALkoT9K2Swb/exec'; 
+        const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw4Cu4xxhWr6t6AJeCoyciQUoEv6DBzDNZ813vXjJFetomEgRgBBGc_zALkoT9K2Swb/exec'; // ¡ACTUALIZA ESTA LÍNEA!
         // **********************************************************************************
         
         const ADMIN_REPORT_URL = 'https://docs.google.com/spreadsheets/d/1oCF0dB6jRrzPtF1A4KNMEa7q4UOXdLOVeh9Hv3eOfjY/edit?gid=0#gid=0'; 
@@ -211,9 +211,9 @@
             const fechaRaw = params.get('fecha_despacho');
             
             // Parámetros del cliente enviados por Odoo
-            const nombre = params.get('nombre') || '';
+            const nombre = params.get('nombre') || ''; // Se recibirá vacío, pero se carga.
             const email = params.get('email_c') || '';
-            const telefono = params.get('telefono_c') || ''; // Recibimos el teléfono, aunque sea editable
+            const telefono = params.get('telefono_c') || ''; 
 
             // 1. Cargar Fecha
             fechaDespachoCheckout = fechaRaw || 'No seleccionada';
@@ -223,11 +223,14 @@
             const emailInput = getEl('expreso_email');
             const telefonoInput = getEl('expreso_telefono');
             
-            // Solo rellenamos si el campo existe.
-            if (nombreInput) nombreInput.value = nombre;
+            // El nombre se carga vacío, manteniendo el campo readonly
+            if (nombreInput) nombreInput.value = nombre; 
+            
+            // El email se carga y es readonly
             if (emailInput) emailInput.value = email; 
+            
+            // El teléfono se carga y es editable
             if (telefonoInput) {
-                // Rellena el teléfono, pero como no tiene 'readonly', puede editarse.
                 if (telefono) {
                      telefonoInput.value = telefono;
                 }
@@ -245,7 +248,7 @@
                     <p class="mb-0">✅ ¡Datos Guardados! Ya puedes volver al sitio web para finalizar la compra.</p>
                 </div>
                 <a href="${finalUrl}" class="btn btn-primary btn-sm text-decoration-none mt-2 mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-2" viewBox="0 0 16 16">
+                    <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-2" viewBox="0 0 16 16">
                         <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
                     </svg>
                     Volver al Checkout
@@ -255,18 +258,20 @@
         }
 
         function guardarExpreso() {
-            // Recogemos todos los datos, incluido el teléfono editable
-            const nombre_cliente = (getEl('expreso_nombre_cliente') || {}).value || ''; 
+            // Recogemos solo los datos necesarios (Email, Teléfono, Expreso).
             const pref = (getEl('expreso_preferencia') || {}).value || '';
             const email = (getEl('expreso_email') || {}).value || '';
             const tel = (getEl('expreso_telefono') || {}).value || '';
             const errorDiv = getEl('errorExpreso');
             const btnGuardar = getEl("btnGuardarExpreso");
             
+            // NOTE: El nombre del cliente no se necesita y se envía vacío a Sheets.
+            const nombre_cliente = (getEl('expreso_nombre_cliente') || {}).value || 'No Capturado (Solo Email)'; 
+
             if (errorDiv) { errorDiv.classList.add('d-none'); errorDiv.textContent = ''; }
             if (!btnGuardar) return;
 
-            // 1. Validación (NORMAL)
+            // 1. Validación
             if (pref.trim().toUpperCase() === ADMIN_MODE_KEY) { 
                 window.open(ADMIN_REPORT_URL, '_blank'); 
                 return; 
@@ -288,9 +293,9 @@
             const datosExpreso = {
                 expreso: pref.trim(),
                 email: email.trim(),
-                telefono: tel.trim(), // Se envía el valor actual, ya sea autocargado o editado
+                telefono: tel.trim(), 
                 fecha_checkout: fechaDespachoCheckout,
-                nombre_cliente: nombre_cliente.trim() 
+                nombre_cliente: nombre_cliente.trim() // Se envía vacío o con una nota.
             };
             
             fetch(SHEETS_API_URL, {
