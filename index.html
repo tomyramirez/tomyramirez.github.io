@@ -194,214 +194,192 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- CONFIGURACIÓN ---
-            const REDIRECTION_URL = "https://natural-house.odoo.com/shop/cart";
-            const CART_URL = "https://natural-house.odoo.com/shop/cart";
-            const ADMIN_MODE_KEY = "ADMINNH";
+    // --- HELPERS ---
+    const getEl = id => document.getElementById(id);
+    const bootstrap = window.bootstrap;
+    
+    // --- CONFIGURACIÓN ---
+    const REDIRECTION_URL = "https://natural-house.odoo.com/shop/cart";
+    const CART_URL = "https://natural-house.odoo.com/shop/cart";
+    const ADMIN_MODE_KEY = "ADMINNH";
 
-            // **********************************************************************************
-            // ¡CLAVE! DEBES REEMPLAZAR LA SIGUIENTE LÍNEA CON LA URL DE TU ÚLTIMA APLICACIÓN WEB DE GOOGLE APPS SCRIPT.
-            const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw4Cu4xxhWr6t6AJeCoyciQUoEv6DBzDNZ813vXjJFetomEgRgBBGc_zALkoT9K2Swb/exec'; 
-            // **********************************************************************************
+    // **********************************************************************************
+    // ¡CLAVE! DEBES REEMPLAZAR LA SIGUIENTE LÍNEA CON LA URL DE TU ÚLTIMA APLICACIÓN WEB DE GOOGLE APPS SCRIPT.
+    const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw4Cu4xxhWr6t6AJeCoyciQUoEv6DBzDNZ813vXjJFetomEgRgBBGc_zALkoT9K2Swb/exec'; 
+    // **********************************************************************************
+    
+    const ADMIN_REPORT_URL = 'https://docs.google.com/spreadsheets/d/1oCF0dB6jRrzPtF1A4KNMEa7q4UOXdLOVeh9Hv3eOfjY/edit?gid=0#gid=0';
 
-            const ADMIN_REPORT_URL = 'https://docs.google.com/spreadsheets/d/1oCF0dB6jRrzPtF1A4KNMEa7q4UOXdLOVeh9Hv3eOfjY/edit?gid=0#gid=0';
+    let fechaDespachoCheckout = null;
+    
+    // Variables globales (se inicializan en DOMContentLoaded)
+    let formExpreso;
+    let btnGuardar;
 
-            let fechaDespachoCheckout = null;
 
-            // --- HELPERS ---
-            const getEl = id => document.getElementById(id);
-            const bootstrap = window.bootstrap;
-            const formExpreso = getEl('formExpreso');
-            const btnGuardar = getEl('btnGuardarExpreso');
-            const camposRequeridos = formExpreso.querySelectorAll('[required]');
+    // ----------------------------------------------------------------------------------
+    // --- LÓGICA DE CARGA DE DATOS DESDE URL ---
+    // ----------------------------------------------------------------------------------
 
-            // ----------------------------------------------------------------------------------
-            // NUEVA LÓGICA: VALIDACIÓN Y CONTROL DEL BOTÓN
-            // ----------------------------------------------------------------------------------
+    function getDatosFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const fechaRaw = params.get('fecha_despacho');
 
-            /**
-             * Verifica si todos los campos requeridos son válidos (no vacíos y formato correcto).
-             */
-            function validarFormulario() {
-                let esValido = true;
-                
-                camposRequeridos.forEach(campo => {
-                    // Usamos la validación nativa (required, type="email", etc.)
-                    if (!campo.checkValidity()) {
-                        esValido = false;
-                    }
-                    // Si el email es readonly y no tiene valor (lo que nunca debería pasar si Odoo funciona)
-                    if (campo.id === 'expreso_email' && campo.value.trim() === '') {
-                        esValido = false;
-                    }
-                });
+        // Parámetros del cliente enviados por Odoo
+        const nombre = params.get('nombre') || ''; 
+        const email = params.get('email_c') || '';
+        const telefono = params.get('telefono_c') || '';
 
-                // Controla el atributo 'disabled' del botón
-                btnGuardar.disabled = !esValido;
+        // 1. Cargar Fecha
+        fechaDespachoCheckout = fechaRaw || 'No seleccionada';
+
+        // 2. Rellenar campos del Cliente
+        const nombreInput = getEl('expreso_nombre_cliente');
+        const emailInput = getEl('expreso_email');
+        const telefonoInput = getEl('expreso_telefono');
+
+        // Rellenar Nombre
+        if (nombreInput) nombreInput.value = nombre;
+
+        // Rellenar Email (readonly)
+        if (emailInput) emailInput.value = email;
+
+        // Rellenar Teléfono
+        if (telefonoInput) {
+            if (telefono) {
+                telefonoInput.value = telefono;
+            }
+        }
+        
+        // **IMPORTANTE**: La llamada a validarFormulario() ha sido eliminada.
+    }
+
+    // Función simplificada para mostrar el mensaje de éxito persistente
+    function mostrarMensajeExitoPersistente(finalUrl) {
+        const redirectArea = getEl('redirection-area');
+
+        redirectArea.classList.remove('d-none');
+
+        redirectArea.innerHTML = `
+            <div class="alert alert-success p-3 shadow-sm my-3">
+                <p class="mb-0">✅ ¡Datos Guardados! Ya puedes volver al sitio web para finalizar la compra.</p>
+            </div>
+            <a href="${finalUrl}" class="btn btn-primary btn-sm text-decoration-none mt-2 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-2" viewBox="0 0 16 16">
+                    <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
+                </svg>
+                Volver al Checkout
+            </a>
+        `;
+        getEl('errorExpreso').classList.add('d-none');
+    }
+
+    function guardarExpreso() {
+        
+        // Recogemos solo los datos necesarios (Email, Teléfono, Expreso).
+        const pref = (getEl('expreso_preferencia') || {}).value || '';
+        const email = (getEl('expreso_email') || {}).value || '';
+        const tel = (getEl('expreso_telefono') || {}).value || '';
+        const errorDiv = getEl('errorExpreso');
+        const nombre_cliente = (getEl('expreso_nombre_cliente') || {}).value || '';
+
+        if (errorDiv) { errorDiv.classList.add('d-none'); errorDiv.textContent = ''; }
+
+        // 1. Validación de campos (obligatoria antes del envío)
+        if (!pref.trim() || !email.trim() || !tel.trim() || !nombre_cliente.trim()) {
+            if (errorDiv) {
+                errorDiv.classList.remove('d-none');
+                // Alerta al cliente si faltan campos
+                errorDiv.textContent = 'ERROR: Debe completar el Nombre, Expreso, Email y Teléfono.';
+            }
+            return; // Detiene la función si faltan datos
+        }
+
+        // 2. Verificación del modo ADMIN
+        if (pref.trim().toUpperCase() === ADMIN_MODE_KEY) {
+            window.open(ADMIN_REPORT_URL, '_blank');
+            return;
+        }
+
+        btnGuardar.disabled = true;
+        btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...`;
+        getEl('redirection-area').classList.add('d-none');
+
+        // 3. ENVÍO DE DATOS A GOOGLE SHEETS (API)
+        const datosExpreso = {
+            expreso: pref.trim(),
+            email: email.trim(),
+            telefono: tel.trim(),
+            fecha_checkout: fechaDespachoCheckout,
+            nombre_cliente: nombre_cliente.trim()
+        };
+
+        fetch(SHEETS_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(datosExpreso),
+            mode: 'no-cors'
+        })
+        .then(() => {
+            // Éxito o inicio de la transferencia
+            btnGuardar.innerHTML = '✓';
+            btnGuardar.classList.add('success-state');
+
+            const successModal = new bootstrap.Modal(getEl('successModal'));
+            successModal.show();
+
+            setTimeout(() => { successModal.hide(); }, 2000);
+
+            setTimeout(() => {
+                btnGuardar.classList.remove('success-state');
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = 'Guardar y Continuar';
+
+                mostrarMensajeExitoPersistente(REDIRECTION_URL);
+            }, 2200);
+
+        })
+        .catch(error => {
+            // Fallo de red/API
+            console.error('Error al guardar los datos:', error);
+
+            if (errorDiv) {
+                errorDiv.classList.remove('d-none');
+                errorDiv.textContent = 'ERROR: No se pudo guardar el dato. Verifique la URL de la API. Detalle: Failed to fetch';
             }
 
-            // ----------------------------------------------------------------------------------
-            // --- LÓGICA DE CARGA DE DATOS DESDE URL ---
-            // ----------------------------------------------------------------------------------
-
-            function getDatosFromURL() {
-                const params = new URLSearchParams(window.location.search);
-                const fechaRaw = params.get('fecha_despacho');
-
-                // Parámetros del cliente enviados por Odoo
-                const nombre = params.get('nombre') || ''; 
-                const email = params.get('email_c') || '';
-                const telefono = params.get('telefono_c') || '';
-
-                // 1. Cargar Fecha
-                fechaDespachoCheckout = fechaRaw || 'No seleccionada';
-
-                // 2. Rellenar campos del Cliente
-                const nombreInput = getEl('expreso_nombre_cliente');
-                const emailInput = getEl('expreso_email');
-                const telefonoInput = getEl('expreso_telefono');
-
-                // Rellenar Nombre
-                if (nombreInput) nombreInput.value = nombre;
-
-                // Rellenar Email (readonly)
-                if (emailInput) emailInput.value = email;
-
-                // Rellenar Teléfono
-                if (telefonoInput) {
-                    if (telefono) {
-                        telefonoInput.value = telefono;
-                    }
-                }
-                
-                // CLAVE: Una vez que los datos se cargan, validamos el formulario por primera vez.
-                validarFormulario();
-            }
-
-            // Función simplificada para mostrar el mensaje de éxito persistente
-            function mostrarMensajeExitoPersistente(finalUrl) {
-                const redirectArea = getEl('redirection-area');
-
-                redirectArea.classList.remove('d-none');
-
-                redirectArea.innerHTML = `
-                    <div class="alert alert-success p-3 shadow-sm my-3">
-                        <p class="mb-0">✅ ¡Datos Guardados! Ya puedes volver al sitio web para finalizar la compra.</p>
-                    </div>
-                    <a href="${finalUrl}" class="btn btn-primary btn-sm text-decoration-none mt-2 mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-2" viewBox="0 0 16 16">
-                            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
-                        </svg>
-                        Volver al Checkout
-                    </a>
-                `;
-                getEl('errorExpreso').classList.add('d-none');
-            }
-
-            function guardarExpreso() {
-                // Si el botón está deshabilitado, salimos inmediatamente (doble seguridad)
-                if (btnGuardar.disabled) {
-                    return;
-                }
-                
-                // Recogemos solo los datos necesarios (Email, Teléfono, Expreso).
-                const pref = (getEl('expreso_preferencia') || {}).value || '';
-                const email = (getEl('expreso_email') || {}).value || '';
-                const tel = (getEl('expreso_telefono') || {}).value || '';
-                const errorDiv = getEl('errorExpreso');
-                
-                // CLAVE: Captura el nombre (ahora editable) para enviarlo a Sheets.
-                const nombre_cliente = (getEl('expreso_nombre_cliente') || {}).value || '';
-
-                if (errorDiv) { errorDiv.classList.add('d-none'); errorDiv.textContent = ''; }
-                if (!btnGuardar) return;
-
-                // Si se pasó la validación de JavaScript, solo verificamos el modo ADMIN
-                if (pref.trim().toUpperCase() === ADMIN_MODE_KEY) {
-                    window.open(ADMIN_REPORT_URL, '_blank');
-                    return;
-                }
-
-                // Esta validación ya debería ser cubierta por validarFormulario, pero la dejamos como fallback final.
-                if (!pref.trim() || !email.trim() || !tel.trim() || !nombre_cliente.trim()) {
-                    if (errorDiv) {
-                        errorDiv.classList.remove('d-none');
-                        errorDiv.textContent = 'Debe completar el Nombre, Expreso, Email y Teléfono.';
-                    }
-                    return;
-                }
-
-                btnGuardar.disabled = true;
-                btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...`;
-                getEl('redirection-area').classList.add('d-none');
-
-                // 2. ENVÍO DE DATOS A GOOGLE SHEETS (API)
-                const datosExpreso = {
-                    expreso: pref.trim(),
-                    email: email.trim(),
-                    telefono: tel.trim(),
-                    fecha_checkout: fechaDespachoCheckout,
-                    nombre_cliente: nombre_cliente.trim() // Se envía el nombre ingresado.
-                };
-
-                fetch(SHEETS_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(datosExpreso),
-                    mode: 'no-cors'
-                })
-                .then(() => {
-                    // Éxito o inicio de la transferencia (por 'no-cors')
-                    btnGuardar.innerHTML = '✓';
-                    btnGuardar.classList.add('success-state');
-
-                    const successModal = new bootstrap.Modal(getEl('successModal'));
-                    successModal.show();
-
-                    setTimeout(() => { successModal.hide(); }, 2000);
-
-                    setTimeout(() => {
-                        btnGuardar.classList.remove('success-state');
-                        btnGuardar.disabled = false;
-                        btnGuardar.innerHTML = 'Guardar y Continuar';
-
-                        mostrarMensajeExitoPersistente(REDIRECTION_URL);
-                    }, 2200);
-
-                })
-                .catch(error => {
-                    // Fallo de red/API
-                    console.error('Error al guardar los datos:', error);
-
-                    if (errorDiv) {
-                        errorDiv.classList.remove('d-none');
-                        errorDiv.textContent = 'ERROR: No se pudo guardar el dato. Verifique la URL de la API. Detalle: Failed to fetch';
-                    }
-
-                    btnGuardar.disabled = false;
-                    btnGuardar.innerHTML = 'Guardar y Continuar';
-                });
-            }
-
-            // --- LÓGICA PARA EL BOTÓN 'CERRAR' (Volver al Carrito) ---
-            const btnCerrar = getEl('btnCerrar');
-
-            if (btnCerrar) {
-                btnCerrar.addEventListener('click', (e) => {
-                    e.preventDefault(); 
-                    window.location.replace(CART_URL); 
-                });
-                btnCerrar.textContent = 'Volver al Carrito';
-            }
-
-            // --- INICIALIZACIÓN ---
-            getDatosFromURL(); // Carga datos y LUEGO llama a validarFormulario()
-            formExpreso.addEventListener('input', validarFormulario); // Escucha los cambios
-            btnGuardar.addEventListener('click', guardarExpreso); // Asigna el evento de guardado
+            btnGuardar.disabled = false;
+            btnGuardar.innerHTML = 'Guardar y Continuar';
         });
-    </script>
+    }
+
+    // --- LÓGICA PARA EL BOTÓN 'CERRAR' (Volver al Carrito) ---
+    const btnCerrar = getEl('btnCerrar');
+
+    if (btnCerrar) {
+        btnCerrar.addEventListener('click', (e) => {
+            e.preventDefault(); 
+            window.location.replace(CART_URL); 
+        });
+        btnCerrar.textContent = 'Volver al Carrito';
+    }
+
+    // --- INICIALIZACIÓN ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // Inicializar las referencias de elementos globales
+        formExpreso = getEl('formExpreso');
+        btnGuardar = getEl('btnGuardarExpreso');
+        // camposRequeridos ha sido eliminado.
+        
+        getDatosFromURL(); // Solo carga los datos, sin validación de botón.
+        
+        // ¡La escucha de 'input' ha sido eliminada!
+        
+        // Asigna el evento de guardado
+        btnGuardar.addEventListener('click', guardarExpreso);
+    });
+</script>
 </body>
 </html>
