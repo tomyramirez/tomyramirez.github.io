@@ -1,365 +1,407 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Confirmación de Expreso</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmación de Expreso</title>
 
- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
- <style>
- :root {
- /* Colores suaves */
---color-primary: #528a5d;
- --color-secondary: #f0f7ee;
- --color-success: #6c9a72;
- --color-warning: #cc3300;
- --color-soft-bg: #e9f0e8;
- --color-text-dark: #333;
- --color-close-btn: #232323;
- }
+    <style>
+        :root {
+            /* Colores suaves */
+            --color-primary: #528a5d;
+            --color-secondary: #f0f7ee;
+            --color-success: #6c9a72;
+            --color-warning: #cc3300;
+            --color-soft-bg: #e9f0e8;
+            --color-text-dark: #333;
+            --color-close-btn: #232323;
+        }
 
-body{
-overflow-y: auto;
-font-family: Arial, sans-serif;
-color: var(--color-text-dark);
-min-height: 100vh;
-display: flex;
-align-items: center;
-justify-content: center;
-flex-direction: column;
-padding: 20px;
-position: relative;
-}
+        body{
+            overflow-y: auto;
+            font-family: Arial, sans-serif;
+            color: var(--color-text-dark);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 20px;
+            position: relative;
+        }
 
-body::before {
-content: '';
-position: fixed;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-/* Reemplaza con una URL de imagen adecuada */
-background-image: url('https://lh3.googleusercontent.com/p/AF1QipPrgZmqcHZmUueNO4STMud9t6NfXZib4LXlk90n=s680-w680-h510-rw');
-background-size: cover;
-background-position: center;
-filter: blur(5px);
-z-index: -1;
--webkit-filter: blur(5px);
-}
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Reemplaza con una URL de imagen adecuada */
+            background-image: url('https://lh3.googleusercontent.com/p/AF1QipPrgZmqcHZmUueNO4STMud9t6NfXZib4LXlk90n=s680-w680-h510-rw');
+            background-size: cover;
+            background-position: center;
+            filter: blur(5px);
+            z-index: -1;
+            -webkit-filter: blur(5px);
+        }
 
-.form-container {
-max-width: 500px;
-width: 100%;
-padding: 30px;
-background-color: rgba(255, 255, 255, 0.9);
-border-radius: 12px;
-box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-border: 1px solid var(--color-soft-bg);
-z-index: 1;
-}
-.alert-danger-custom {
-background-color: #ffe0e0;
-color: var(--color-warning);
-border-color: #fdd;
-font-weight: bold;
-}
+        .form-container {
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--color-soft-bg);
+            z-index: 1;
+        }
+        .alert-danger-custom {
+            background-color: #ffe0e0;
+            color: var(--color-warning);
+            border-color: #fdd;
+            font-weight: bold;
+        }
 
-#btnGuardarExpreso {
-background-color: var(--color-primary);
-border-color: var(--color-primary);
-transition: all 0.5s ease-in-out;
-font-weight: bold;
-width: 100%;
-}
+        #btnGuardarExpreso {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            transition: all 0.5s ease-in-out;
+            font-weight: bold;
+            width: 100%;
+        }
+        
+        /* ESTILO PARA BOTÓN DESHABILITADO */
+        #btnGuardarExpreso:disabled {
+            background-color: #cccccc;
+            border-color: #cccccc;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
-#btnCerrar {
-background-color: var(--color-close-btn);
-border-color: var(--color-close-btn);
-font-weight: bold;
-width: 100%;
-}
 
-#btnGuardarExpreso.success-state {
-background-color: var(--color-success);
-border-color: var(--color-success);
-width: 50px;
-height: 50px;
-border-radius: 50%;
-padding: 0;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 1.5rem;
-transform: scale(1.1);
-}
+        #btnCerrar {
+            background-color: var(--color-close-btn);
+            border-color: var(--color-close-btn);
+            font-weight: bold;
+            width: 100%;
+        }
 
-.modal-success-center {
-pointer-events: none;
-background-color: rgba(255, 255, 255, 0);
-}
-.modal-success-center .modal-content {
-background-color: var(--color-success);
-color: white;
-/* Estilos del modal de éxito */
-border: none;
-border-radius: 8px;
-box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-position: absolute;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%);
-width: auto;
-min-width: 250px;
-}
-.modal-success-center .modal-header,
-.modal-success-center .modal-footer {
-border: none;
-}
-/* Estilos del Reporte Admin */
-#admin-report-page {
-max-width: 800px;
-background-color: rgba(255, 255, 255, 0.95);
-}
-</style>
+        #btnGuardarExpreso.success-state {
+            background-color: var(--color-success);
+            border-color: var(--color-success);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transform: scale(1.1);
+        }
+
+        .modal-success-center {
+            pointer-events: none;
+            background-color: rgba(255, 255, 255, 0);
+        }
+        .modal-success-center .modal-content {
+            background-color: var(--color-success);
+            color: white;
+            /* Estilos del modal de éxito */
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: auto;
+            min-width: 250px;
+        }
+        .modal-success-center .modal-header,
+        .modal-success-center .modal-footer {
+            border: none;
+        }
+        /* Estilos del Reporte Admin */
+        #admin-report-page {
+            max-width: 800px;
+            background-color: rgba(255, 255, 255, 0.95);
+        }
+    </style>
 </head>
 <body>
 
-<div class="form-container">
-<h2 class="mb-4 text-center" style="color: var(--color-primary);">DATOS PARA EL DESPACHO</h2>
+    <div class="form-container">
+        <h2 class="mb-4 text-center" style="color: var(--color-primary);">DATOS PARA EL DESPACHO</h2>
 
-<div class="alert alert-danger-custom mb-4 text-center">
-<b>ATENCIÓN:</b> El costo de envío y despacho a Expreso <i><b>CORRE POR CUENTA DEL CLIENTE</b></i>
-</div>
+        <div class="alert alert-danger-custom mb-4 text-center">
+            <b>ATENCIÓN:</b> El costo de envío y despacho a Expreso <i><b>CORRE POR CUENTA DEL CLIENTE</b></i>
+        </div>
 
-<form id="formExpreso">
-<div id="errorExpreso" class="alert alert-danger d-none"></div>
+        <form id="formExpreso">
+            <div id="errorExpreso" class="alert alert-danger d-none"></div>
 
-<div class="form-group mb-3">
-<label for="expreso_nombre_cliente" class="form-label"><b><i>Nombre del Cliente *</i></b></label>
-<input type="text" class="form-control" id="expreso_nombre_cliente" required placeholder="Ej: Juan Pérez">
-</div>
+            <div class="form-group mb-3">
+                <label for="expreso_nombre_cliente" class="form-label"><b><i>Nombre del Cliente *</i></b></label>
+                <input type="text" class="form-control" id="expreso_nombre_cliente" required placeholder="Ej: Juan Pérez">
+            </div>
 
-<div class="form-group mb-3">
-<label for="expreso_email" class="form-label"><b><i>Email de contacto</i></b></label>
-<input type="email" class="form-control" id="expreso_email" required readonly>
-</div>
+            <div class="form-group mb-3">
+                <label for="expreso_email" class="form-label"><b><i>Email de contacto</i></b></label>
+                <input type="email" class="form-control" id="expreso_email" required readonly>
+            </div>
 
-<div class="form-group mb-4">
-<label for="expreso_telefono" class="form-label"><b><i>Teléfono de contacto *</i></b></label>
-<input type="tel" class="form-control" id="expreso_telefono" required placeholder="Ej: 11 5555 5555">
-</div>
+            <div class="form-group mb-4">
+                <label for="expreso_telefono" class="form-label"><b><i>Teléfono de contacto *</i></b></label>
+                <input type="tel" class="form-control" id="expreso_telefono" required placeholder="Ej: 11 5555 5555">
+            </div>
 
-<div class="form-group mb-3">
-<label for="expreso_preferencia" class="form-label"><b><i>Expreso de preferencia *</i></b></label>
-<input type="text" class="form-control" id="expreso_preferencia" required placeholder="Ej: Vía Cargo, Correo Argentino">
-</div>
+            <div class="form-group mb-3">
+                <label for="expreso_preferencia" class="form-label"><b><i>Expreso de preferencia *</i></b></label>
+                <input type="text" class="form-control" id="expreso_preferencia" required placeholder="Ej: Vía Cargo, Correo Argentino">
+            </div>
 
-<div class="form-group mb-4 d-flex justify-content-center">
-<button type="button" class="btn btn-primary" id="btnGuardarExpreso">
-Guardar y Continuar
-</button>
-</div>
-<div class="form-group mb-4 d-flex justify-content-center">
-<button type="button" class="btn btn-primary" id="btnCerrar">
-Cerrar
-</button>
-</div>
-</form>
-</div>
+            <div class="form-group mb-4 d-flex justify-content-center">
+                <button type="button" class="btn btn-primary" id="btnGuardarExpreso" disabled>
+                    Guardar y Continuar
+                </button>
+            </div>
+            <div class="form-group mb-4 d-flex justify-content-center">
+                <button type="button" class="btn btn-primary" id="btnCerrar">
+                    Cerrar
+                </button>
+            </div>
+        </form>
+    </div>
 
-<div id="redirection-area" class="mt-4 text-center d-none">
-</div>
+    <div id="redirection-area" class="mt-4 text-center d-none">
+    </div>
 
 
-<div class="modal fade modal-success-center" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
-<div class="modal-dialog modal-sm">
-<div class="modal-content">
-<div class="modal-body text-center py-4">
-<h5 class="mb-0">✅ ¡Datos cargados con éxito!</h5>
-</div>
-</div>
-</div>
-</div>
+    <div class="modal fade modal-success-center" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <h5 class="mb-0">✅ ¡Datos cargados con éxito!</h5>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-// --- CONFIGURACIÓN ---
-const REDIRECTION_URL = "https://natural-house.odoo.com/shop/cart";
-const CART_URL = "https://natural-house.odoo.com/shop/cart";
-const ADMIN_MODE_KEY = "ADMINNH";
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURACIÓN ---
+            const REDIRECTION_URL = "https://natural-house.odoo.com/shop/cart";
+            const CART_URL = "https://natural-house.odoo.com/shop/cart";
+            const ADMIN_MODE_KEY = "ADMINNH";
 
-// **********************************************************************************
-// ¡CLAVE! ESTA URL ES LA FUENTE DEL ERROR 'Failed to fetch' (404)
-// DEBES REEMPLAZAR LA SIGUIENTE LÍNEA CON LA URL DE TU ÚLTIMA APLICACIÓN WEB DE GOOGLE APPS SCRIPT.
-const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw4Cu4xxhWr6t6AJeCoyciQUoEv6DBzDNZ813vXjJFetomEgRgBBGc_zALkoT9K2Swb/exec'; 
-// **********************************************************************************
+            // **********************************************************************************
+            // ¡CLAVE! DEBES REEMPLAZAR LA SIGUIENTE LÍNEA CON LA URL DE TU ÚLTIMA APLICACIÓN WEB DE GOOGLE APPS SCRIPT.
+            const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw4Cu4xxhWr6t6AJeCoyciQUoEv6DBzDNZ813vXjJFetomEgRgBBGc_zALkoT9K2Swb/exec'; 
+            // **********************************************************************************
 
-const ADMIN_REPORT_URL = 'https://docs.google.com/spreadsheets/d/1oCF0dB6jRrzPtF1A4KNMEa7q4UOXdLOVeh9Hv3eOfjY/edit?gid=0#gid=0';
+            const ADMIN_REPORT_URL = 'https://docs.google.com/spreadsheets/d/1oCF0dB6jRrzPtF1A4KNMEa7q4UOXdLOVeh9Hv3eOfjY/edit?gid=0#gid=0';
 
-let fechaDespachoCheckout = null;
+            let fechaDespachoCheckout = null;
 
-// --- HELPERS ---
-const getEl = id => document.getElementById(id);
-const bootstrap = window.bootstrap;
+            // --- HELPERS ---
+            const getEl = id => document.getElementById(id);
+            const bootstrap = window.bootstrap;
+            const formExpreso = getEl('formExpreso');
+            const btnGuardar = getEl('btnGuardarExpreso');
+            const camposRequeridos = formExpreso.querySelectorAll('[required]');
 
-// --- LÓGICA DE CARGA DE DATOS DESDE URL ---
+            // ----------------------------------------------------------------------------------
+            // NUEVA LÓGICA: VALIDACIÓN Y CONTROL DEL BOTÓN
+            // ----------------------------------------------------------------------------------
 
-function getDatosFromURL() {
-const params = new URLSearchParams(window.location.search);
-const fechaRaw = params.get('fecha_despacho');
+            /**
+             * Verifica si todos los campos requeridos son válidos (no vacíos y formato correcto).
+             */
+            function validarFormulario() {
+                let esValido = true;
+                
+                camposRequeridos.forEach(campo => {
+                    // Usamos la validación nativa (required, type="email", etc.)
+                    if (!campo.checkValidity()) {
+                        esValido = false;
+                    }
+                    // Si el email es readonly y no tiene valor (lo que nunca debería pasar si Odoo funciona)
+                    if (campo.id === 'expreso_email' && campo.value.trim() === '') {
+                        esValido = false;
+                    }
+                });
 
-// Parámetros del cliente enviados por Odoo
-const nombre = params.get('nombre') || ''; 
-const email = params.get('email_c') || '';
-const telefono = params.get('telefono_c') || '';
+                // Controla el atributo 'disabled' del botón
+                btnGuardar.disabled = !esValido;
+            }
 
-// 1. Cargar Fecha
-fechaDespachoCheckout = fechaRaw || 'No seleccionada';
+            // ----------------------------------------------------------------------------------
+            // --- LÓGICA DE CARGA DE DATOS DESDE URL ---
+            // ----------------------------------------------------------------------------------
 
-// 2. Rellenar campos del Cliente
-const nombreInput = getEl('expreso_nombre_cliente');
-const emailInput = getEl('expreso_email');
-const telefonoInput = getEl('expreso_telefono');
+            function getDatosFromURL() {
+                const params = new URLSearchParams(window.location.search);
+                const fechaRaw = params.get('fecha_despacho');
 
-// El nombre se carga vacío, pero es editable 
-if (nombreInput) nombreInput.value = nombre;
+                // Parámetros del cliente enviados por Odoo
+                const nombre = params.get('nombre') || ''; 
+                const email = params.get('email_c') || '';
+                const telefono = params.get('telefono_c') || '';
 
-// El email se carga y es readonly
-if (emailInput) emailInput.value = email;
+                // 1. Cargar Fecha
+                fechaDespachoCheckout = fechaRaw || 'No seleccionada';
 
-// El teléfono se carga y es editable
-if (telefonoInput) {
-if (telefono) {
-telefonoInput.value = telefono;
-}
-}
-}
+                // 2. Rellenar campos del Cliente
+                const nombreInput = getEl('expreso_nombre_cliente');
+                const emailInput = getEl('expreso_email');
+                const telefonoInput = getEl('expreso_telefono');
 
-// Función simplificada para mostrar el mensaje de éxito persistente
-function mostrarMensajeExitoPersistente(finalUrl) {
-const redirectArea = getEl('redirection-area');
+                // Rellenar Nombre
+                if (nombreInput) nombreInput.value = nombre;
 
-redirectArea.classList.remove('d-none');
+                // Rellenar Email (readonly)
+                if (emailInput) emailInput.value = email;
 
-redirectArea.innerHTML = `
-<div class="alert alert-success p-3 shadow-sm my-3">
-<p class="mb-0">✅ ¡Datos Guardados! Ya puedes volver al sitio web para finalizar la compra.</p>
-</div>
-<a href="${finalUrl}" class="btn btn-primary btn-sm text-decoration-none mt-2 mb-4">
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-2" viewBox="0 0 16 16">
-<path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
-</svg>
-Volver al Checkout
-</a>
-`;
-getEl('errorExpreso').classList.add('d-none');
-}
+                // Rellenar Teléfono
+                if (telefonoInput) {
+                    if (telefono) {
+                        telefonoInput.value = telefono;
+                    }
+                }
+                
+                // CLAVE: Una vez que los datos se cargan, validamos el formulario por primera vez.
+                validarFormulario();
+            }
 
-function guardarExpreso() {
-// Recogemos solo los datos necesarios (Email, Teléfono, Expreso).
-const pref = (getEl('expreso_preferencia') || {}).value || '';
-const email = (getEl('expreso_email') || {}).value || '';
-const tel = (getEl('expreso_telefono') || {}).value || '';
-const errorDiv = getEl('errorExpreso');
-const btnGuardar = getEl("btnGuardarExpreso");
+            // Función simplificada para mostrar el mensaje de éxito persistente
+            function mostrarMensajeExitoPersistente(finalUrl) {
+                const redirectArea = getEl('redirection-area');
 
-// CLAVE: Captura el nombre (ahora editable) para enviarlo a Sheets.
-const nombre_cliente = (getEl('expreso_nombre_cliente') || {}).value || '';
+                redirectArea.classList.remove('d-none');
 
-if (errorDiv) { errorDiv.classList.add('d-none'); errorDiv.textContent = ''; }
-if (!btnGuardar) return;
+                redirectArea.innerHTML = `
+                    <div class="alert alert-success p-3 shadow-sm my-3">
+                        <p class="mb-0">✅ ¡Datos Guardados! Ya puedes volver al sitio web para finalizar la compra.</p>
+                    </div>
+                    <a href="${finalUrl}" class="btn btn-primary btn-sm text-decoration-none mt-2 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-2" viewBox="0 0 16 16">
+                            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
+                        </svg>
+                        Volver al Checkout
+                    </a>
+                `;
+                getEl('errorExpreso').classList.add('d-none');
+            }
 
-// 1. Validación
-if (pref.trim().toUpperCase() === ADMIN_MODE_KEY) {
-window.open(ADMIN_REPORT_URL, '_blank');
-return;
-}
+            function guardarExpreso() {
+                // Si el botón está deshabilitado, salimos inmediatamente (doble seguridad)
+                if (btnGuardar.disabled) {
+                    return;
+                }
+                
+                // Recogemos solo los datos necesarios (Email, Teléfono, Expreso).
+                const pref = (getEl('expreso_preferencia') || {}).value || '';
+                const email = (getEl('expreso_email') || {}).value || '';
+                const tel = (getEl('expreso_telefono') || {}).value || '';
+                const errorDiv = getEl('errorExpreso');
+                
+                // CLAVE: Captura el nombre (ahora editable) para enviarlo a Sheets.
+                const nombre_cliente = (getEl('expreso_nombre_cliente') || {}).value || '';
 
-// Validación de campos obligatorios
-if (!pref.trim() || !email.trim() || !tel.trim() || !nombre_cliente.trim()) {
-if (errorDiv) {
-errorDiv.classList.remove('d-none');
-errorDiv.textContent = 'Debe completar el Nombre, Expreso, Email y Teléfono.';
-}
-return;
-}
+                if (errorDiv) { errorDiv.classList.add('d-none'); errorDiv.textContent = ''; }
+                if (!btnGuardar) return;
 
-btnGuardar.disabled = true;
-btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...`;
-getEl('redirection-area').classList.add('d-none');
+                // Si se pasó la validación de JavaScript, solo verificamos el modo ADMIN
+                if (pref.trim().toUpperCase() === ADMIN_MODE_KEY) {
+                    window.open(ADMIN_REPORT_URL, '_blank');
+                    return;
+                }
 
-// 2. ENVÍO DE DATOS A GOOGLE SHEETS (API)
-const datosExpreso = {
-expreso: pref.trim(),
-email: email.trim(),
-telefono: tel.trim(),
-fecha_checkout: fechaDespachoCheckout,
-nombre_cliente: nombre_cliente.trim() // Se envía el nombre ingresado.
-};
+                // Esta validación ya debería ser cubierta por validarFormulario, pero la dejamos como fallback final.
+                if (!pref.trim() || !email.trim() || !tel.trim() || !nombre_cliente.trim()) {
+                    if (errorDiv) {
+                        errorDiv.classList.remove('d-none');
+                        errorDiv.textContent = 'Debe completar el Nombre, Expreso, Email y Teléfono.';
+                    }
+                    return;
+                }
 
-fetch(SHEETS_API_URL, {
-method: 'POST',
-headers: {
-'Content-Type': 'application/json'
-},
-body: JSON.stringify(datosExpreso),
-mode: 'no-cors'
-})
-.then(() => {
-// El fetch() termina incluso si la API devuelve un error CORS o 404/500,
-// por lo que si hay un error real en la API, la hoja no se guarda.
-// Si el error es un "Failed to fetch" (red), salta al catch.
-// Aquí asumimos que si no hay error de red, la API funcionó (debido a 'no-cors').
-btnGuardar.innerHTML = '✓';
-btnGuardar.classList.add('success-state');
+                btnGuardar.disabled = true;
+                btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...`;
+                getEl('redirection-area').classList.add('d-none');
 
-const successModal = new bootstrap.Modal(getEl('successModal'));
-successModal.show();
+                // 2. ENVÍO DE DATOS A GOOGLE SHEETS (API)
+                const datosExpreso = {
+                    expreso: pref.trim(),
+                    email: email.trim(),
+                    telefono: tel.trim(),
+                    fecha_checkout: fechaDespachoCheckout,
+                    nombre_cliente: nombre_cliente.trim() // Se envía el nombre ingresado.
+                };
 
-setTimeout(() => { successModal.hide(); }, 2000);
+                fetch(SHEETS_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(datosExpreso),
+                    mode: 'no-cors'
+                })
+                .then(() => {
+                    // Éxito o inicio de la transferencia (por 'no-cors')
+                    btnGuardar.innerHTML = '✓';
+                    btnGuardar.classList.add('success-state');
 
-setTimeout(() => {
-btnGuardar.classList.remove('success-state');
-btnGuardar.disabled = false;
-btnGuardar.innerHTML = 'Guardar y Continuar';
+                    const successModal = new bootstrap.Modal(getEl('successModal'));
+                    successModal.show();
 
-mostrarMensajeExitoPersistente(REDIRECTION_URL);
-}, 2200);
+                    setTimeout(() => { successModal.hide(); }, 2000);
 
-})
-.catch(error => {
-// CLAVE: Esto se ejecuta si hay un error de RED o URL INALCANZABLE (como el 404 de tu imagen).
-console.error('Error al guardar los datos:', error);
+                    setTimeout(() => {
+                        btnGuardar.classList.remove('success-state');
+                        btnGuardar.disabled = false;
+                        btnGuardar.innerHTML = 'Guardar y Continuar';
 
-if (errorDiv) {
-errorDiv.classList.remove('d-none');
-errorDiv.textContent = 'ERROR: No se pudo guardar el dato. Verifique la URL de la API. Detalle: Failed to fetch';
-}
+                        mostrarMensajeExitoPersistente(REDIRECTION_URL);
+                    }, 2200);
 
-btnGuardar.disabled = false;
-btnGuardar.innerHTML = 'Guardar y Continuar';
-});
-}
+                })
+                .catch(error => {
+                    // Fallo de red/API
+                    console.error('Error al guardar los datos:', error);
 
-// --- LÓGICA PARA EL BOTÓN 'CERRAR' (Volver al Carrito) ---
-const btnCerrar = getEl('btnCerrar');
+                    if (errorDiv) {
+                        errorDiv.classList.remove('d-none');
+                        errorDiv.textContent = 'ERROR: No se pudo guardar el dato. Verifique la URL de la API. Detalle: Failed to fetch';
+                    }
 
-if (btnCerrar) {
-btnCerrar.addEventListener('click', (e) => {
- e.preventDefault(); 
-window.location.replace(CART_URL); 
-});
-btnCerrar.textContent = 'Volver al Carrito';
-}
+                    btnGuardar.disabled = false;
+                    btnGuardar.innerHTML = 'Guardar y Continuar';
+                });
+            }
 
-// --- INICIALIZACIÓN ---
-getDatosFromURL(); // CARGA LOS DATOS EN LOS CAMPOS
-getEl("btnGuardarExpreso") && getEl("btnGuardarExpreso").addEventListener('click', guardarExpreso);
-});
-</script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+            // --- LÓGICA PARA EL BOTÓN 'CERRAR' (Volver al Carrito) ---
+            const btnCerrar = getEl('btnCerrar');
+
+            if (btnCerrar) {
+                btnCerrar.addEventListener('click', (e) => {
+                    e.preventDefault(); 
+                    window.location.replace(CART_URL); 
+                });
+                btnCerrar.textContent = 'Volver al Carrito';
+            }
+
+            // --- INICIALIZACIÓN ---
+            getDatosFromURL(); // Carga datos y LUEGO llama a validarFormulario()
+            formExpreso.addEventListener('input', validarFormulario); // Escucha los cambios
+            btnGuardar.addEventListener('click', guardarExpreso); // Asigna el evento de guardado
+        });
+    </script>
 </body>
 </html>
