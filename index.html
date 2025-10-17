@@ -250,8 +250,6 @@
                 telefonoInput.value = telefono;
             }
         }
-        
-        // **IMPORTANTE**: La llamada a validarFormulario() ha sido eliminada.
     }
 
     // Función simplificada para mostrar el mensaje de éxito persistente
@@ -337,7 +335,11 @@
                 btnGuardar.disabled = false;
                 btnGuardar.innerHTML = 'Guardar y Continuar';
 
-                mostrarMensajeExitoPersistente(REDIRECTION_URL);
+                // 🎯 CAMBIO CLAVE AQUÍ: Crear la URL con la bandera de éxito
+                const SUCCESS_REDIRECTION_URL = REDIRECTION_URL + '?expreso_configurado=1';
+
+                // Redirigir usando la URL con la bandera
+                mostrarMensajeExitoPersistente(SUCCESS_REDIRECTION_URL);
             }, 2200);
 
         })
@@ -371,11 +373,8 @@
         // Inicializar las referencias de elementos globales
         formExpreso = getEl('formExpreso');
         btnGuardar = getEl('btnGuardarExpreso');
-        // camposRequeridos ha sido eliminado.
         
         getDatosFromURL(); // Solo carga los datos, sin validación de botón.
-        
-        // ¡La escucha de 'input' ha sido eliminada!
         
         // Asigna el evento de guardado
         btnGuardar.addEventListener('click', guardarExpreso);
