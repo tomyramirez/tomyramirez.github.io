@@ -328,7 +328,9 @@
             const successModal = new bootstrap.Modal(getEl('successModal'));
             successModal.show();
 
-            setTimeout(() => { successModal.hide(); }, 2000);
+            // 🎯 CLAVE: Guardar la bandera de éxito permanente ANTES de redirigir
+            localStorage.setItem('expreso_finalizado', 'true');
+            localStorage.removeItem('localidad_expreso_pending'); // Limpiar la bandera temporal
 
             setTimeout(() => {
                 btnGuardar.classList.remove('success-state');
@@ -336,7 +338,7 @@
                 btnGuardar.innerHTML = 'Guardar y Continuar';
 
                 // 🎯 CAMBIO CLAVE AQUÍ: Crear la URL con la bandera de éxito
-                const SUCCESS_REDIRECTION_URL = REDIRECTION_URL + '?expreso_configurado=1';
+                const SUCCESS_REDIRECTION_URL = REDIRECTION_URL + '?expreso_configurado=1'
 
                 // Redirigir usando la URL con la bandera
                 mostrarMensajeExitoPersistente(SUCCESS_REDIRECTION_URL);
