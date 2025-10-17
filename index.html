@@ -332,6 +332,8 @@
             localStorage.setItem('expreso_finalizado', 'true');
             localStorage.removeItem('localidad_expreso_pending'); // Limpiar la bandera temporal
 
+            setTimeout(() => { successModal.hide(); }, 2000);
+
             setTimeout(() => {
                 btnGuardar.classList.remove('success-state');
                 btnGuardar.disabled = false;
