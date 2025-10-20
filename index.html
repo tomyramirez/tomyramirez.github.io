@@ -9,7 +9,6 @@
 
     <style>
         :root {
-            /* Colores suaves */
             --color-primary: #528a5d;
             --color-secondary: #f0f7ee;
             --color-success: #6c9a72;
@@ -39,7 +38,6 @@
             left: 0;
             width: 100%;
             height: 100%;
-            /* Reemplaza con una URL de imagen adecuada */
             background-image: url('https://lh3.googleusercontent.com/p/AF1QipPrgZmqcHZmUueNO4STMud9t6NfXZib4LXlk90n=s680-w680-h510-rw');
             background-size: cover;
             background-position: center;
@@ -73,7 +71,6 @@
             width: 100%;
         }
         
-        /* ESTILO PARA BOTÓN DESHABILITADO */
         #btnGuardarExpreso:disabled {
             background-color: #cccccc;
             border-color: #cccccc;
@@ -110,7 +107,6 @@
         .modal-success-center .modal-content {
             background-color: var(--color-success);
             color: white;
-            /* Estilos del modal de éxito */
             border: none;
             border-radius: 8px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
@@ -125,7 +121,6 @@
         .modal-success-center .modal-footer {
             border: none;
         }
-        /* Estilos del Reporte Admin */
         #admin-report-page {
             max-width: 800px;
             background-color: rgba(255, 255, 255, 0.95);
@@ -199,13 +194,18 @@
     const bootstrap = window.bootstrap;
     
     // --- CONFIGURACIÓN ---
-    // NOTA: REDIRECTION_URL y CART_URL serán dinámicos.
     const ADMIN_MODE_KEY = "ADMINNH";
+
+    // **********************************************************************************
+    // ¡CLAVE! DEBES REEMPLAZAR LA SIGUIENTE LÍNEA CON LA URL DE TU ÚLTIMA APLICACIÓN WEB DE GOOGLE APPS SCRIPT.
     const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw4Cu4xxhWr6t6AJeCoyciQUoEv6DBzDNZ813vXjJFetomEgRgBBGc_zALkoT9K2Swb/exec'; 
+    // **********************************************************************************
+    
     const ADMIN_REPORT_URL = 'https://docs.google.com/spreadsheets/d/1oCF0dB6jRrzPtF1A4KNMEa7q4UOXdLOVeh9Hv3eOfjY/edit?gid=0#gid=0';
 
     let fechaDespachoCheckout = null;
-    let DYNAMIC_CART_URL = "https://natural-house.odoo.com/shop/cart"; // Valor por defecto
+    // 🎯 CLAVE: Usaremos esta variable para la URL de retorno dinámica
+    let DYNAMIC_CART_URL = "https://natural-house.odoo.com/shop/cart"; 
     
     let formExpreso;
     let btnGuardar;
@@ -218,14 +218,16 @@
     function getDatosFromURL() {
         const params = new URLSearchParams(window.location.search);
         
-        // 🎯 CLAVE: Capturar la URL del carrito enviada por Odoo
+        // 🎯 CLAVE 1: Capturar la URL del carrito enviada por Odoo
         const receivedCartUrl = params.get('cart_url');
         if (receivedCartUrl) {
-            // Guardamos la URL base (sin query params)
-            DYNAMIC_CART_URL = receivedCartUrl.split('?')[0]; 
+            // Usamos la URL completa (puede incluir parámetros)
+            DYNAMIC_CART_URL = receivedCartUrl; 
         }
 
         const fechaRaw = params.get('fecha_despacho');
+        
+        // Parámetros del cliente enviados por Odoo
         const nombre = params.get('nombre') || ''; 
         const email = params.get('email_c') || '';
         const telefono = params.get('telefono_c') || '';
@@ -237,11 +239,13 @@
         const emailInput = getEl('expreso_email');
         const telefonoInput = getEl('expreso_telefono');
 
-        // Rellenar Nombre
+        // Rellenar Nombre (es editable por el usuario)
         if (nombreInput) nombreInput.value = nombre;
 
         // Rellenar Email (readonly)
-        if (emailInput) emailInput.value = email;
+        if (emailInput) {
+            emailInput.value = email; 
+        }
 
         // Rellenar Teléfono
         if (telefonoInput) {
@@ -264,7 +268,7 @@
         `;
         getEl('errorExpreso').classList.add('d-none');
         
-        // 🎯 CLAVE: Forzar la redirección a la misma pestaña después de 1.5s
+        // Forzar la redirección a la misma pestaña después de 1.5s
         setTimeout(() => {
             window.location.replace(finalUrl);
         }, 1500); 
@@ -272,7 +276,6 @@
 
     function guardarExpreso() {
         
-        // Recogemos solo los datos necesarios (Email, Teléfono, Expreso).
         const pref = (getEl('expreso_preferencia') || {}).value || '';
         const email = (getEl('expreso_email') || {}).value || '';
         const tel = (getEl('expreso_telefono') || {}).value || '';
@@ -285,10 +288,9 @@
         if (!pref.trim() || !email.trim() || !tel.trim() || !nombre_cliente.trim()) {
             if (errorDiv) {
                 errorDiv.classList.remove('d-none');
-                // Alerta al cliente si faltan campos
                 errorDiv.textContent = 'ERROR: Debe completar el Nombre, Expreso, Email y Teléfono.';
             }
-            return; // Detiene la función si faltan datos
+            return;
         }
 
         // 2. Verificación del modo ADMIN
@@ -326,7 +328,7 @@
 
             // 🎯 CLAVE: Guardar la bandera de éxito permanente ANTES de redirigir
             localStorage.setItem('expreso_finalizado', 'true');
-            localStorage.removeItem('localidad_expreso_pending'); // Limpiar la bandera temporal
+            localStorage.removeItem('localidad_expreso_pending');
 
             setTimeout(() => { successModal.hide(); }, 2000);
 
@@ -336,7 +338,8 @@
                 btnGuardar.innerHTML = 'Guardar y Continuar';
 
                 // 🎯 CLAVE: Construir la URL de redirección con la bandera de éxito
-                const finalRedirectionUrl = DYNAMIC_CART_URL + '?expreso_configurado=1';
+                const cartBaseUrl = DYNAMIC_CART_URL.split('?')[0];
+                const finalRedirectionUrl = cartBaseUrl + '?expreso_configurado=1';
 
                 mostrarMensajeExitoPersistente(finalRedirectionUrl);
             }, 2200);
@@ -362,23 +365,22 @@
     if (btnCerrar) {
         btnCerrar.addEventListener('click', (e) => {
             e.preventDefault(); 
-            // 🎯 CLAVE: Usar la URL dinámica del carrito
-            window.location.replace(DYNAMIC_CART_URL); 
+            // 🎯 CLAVE: Usar la URL base dinámica del carrito (sin parámetros de éxito)
+            const cartBaseUrl = DYNAMIC_CART_URL.split('?')[0];
+            window.location.replace(cartBaseUrl); 
         });
         btnCerrar.textContent = 'Volver al Carrito';
     }
 
     // --- INICIALIZACIÓN ---
     document.addEventListener('DOMContentLoaded', () => {
-        // Inicializar las referencias de elementos globales
         formExpreso = getEl('formExpreso');
         btnGuardar = getEl('btnGuardarExpreso');
         
-        getDatosFromURL(); // Carga datos y captura la URL dinámica del carrito.
+        getDatosFromURL();
         
-        // Asigna el evento de guardado
         btnGuardar.addEventListener('click', guardarExpreso);
     });
-</script>
+    </script>
 </body>
 </html>
